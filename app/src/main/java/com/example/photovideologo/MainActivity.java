@@ -223,7 +223,7 @@ public class MainActivity extends AppCompatActivity {
 
                 @Override
                 public void onSuccess(String message) {
-                    Log.e("suck",message);
+                    Log.e("success",message);
                     video1.setVideoPath(app_folder+"output_video.mp4");
                     MediaController mediaController = new MediaController(MainActivity.this);
                     mediaController.setAnchorView(video1);
