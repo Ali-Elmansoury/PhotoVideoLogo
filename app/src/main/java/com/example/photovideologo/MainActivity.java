@@ -12,9 +12,11 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -44,12 +46,15 @@ public class MainActivity extends AppCompatActivity {
     Bitmap bmp1, bmp2, bmp3;
     private static final String root = Environment.getExternalStorageDirectory().toString();
     private static final String app_folder = root + "/video_logo/";
-    AlertDialog.Builder wait_ya3m = new AlertDialog.Builder(MainActivity.this);
+    private AlertDialog progressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        requestAllFilesAccessPermission();
+
         image = findViewById(R.id.image);
         image1 = findViewById(R.id.image1);
         video = findViewById(R.id.video);
@@ -80,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
 
     void videoChooser() {
         Intent intent = new Intent(Intent.ACTION_PICK,
-                android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                MediaStore.Video.Media.EXTERNAL_CONTENT_URI);
         startActivityForResult(intent, SELECT_VIDEO);
         MediaController mediaController = new MediaController(this);
         mediaController.setAnchorView(video);
@@ -208,6 +213,16 @@ public class MainActivity extends AppCompatActivity {
                 public void onStart() {
                     Toast.makeText(MainActivity.this, "Process Started", Toast.LENGTH_SHORT).show();
                     //wait_ya3m.setIcon(android.R.drawable.ic_dialog_alert).setTitle("Please Wait...").setMessage("Video editing in progress").show();
+
+                    runOnUiThread(() -> {
+                        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                        builder.setIcon(android.R.drawable.ic_dialog_alert)
+                                .setTitle("Please Wait...")
+                                .setMessage("Video editing in progress");
+                        progressDialog = builder.create();
+                        progressDialog.show();
+                        Toast.makeText(MainActivity.this, "Process Started", Toast.LENGTH_SHORT).show();
+                    });
                 }
 
                 @Override
@@ -234,7 +249,11 @@ public class MainActivity extends AppCompatActivity {
 
                 @Override
                 public void onFinish() {
-
+                    runOnUiThread(() -> {
+                        if (progressDialog != null && progressDialog.isShowing()) {
+                            progressDialog.dismiss();
+                        }
+                    });
                 }
 
             });
@@ -242,4 +261,20 @@ public class MainActivity extends AppCompatActivity {
             // Handle if FFmpeg is already running
         }
     }
+
+    private void requestAllFilesAccessPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (!Environment.isExternalStorageManager()) {
+                try {
+                    Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                    intent.setData(Uri.parse("package:" + getPackageName()));
+                    startActivityForResult(intent, 2296); // You can use any request code
+                } catch (Exception e) {
+                    Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+                    startActivityForResult(intent, 2296);
+                }
+            }
+        }
+    }
+
 }
